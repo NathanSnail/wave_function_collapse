@@ -8,7 +8,7 @@
 ---@field y int
 
 local socket = require("socket")
-local WIDTH, HEIGHT = 10, 10
+local WIDTH, HEIGHT = 30, 10
 
 ---@type table<Cell, table<Cell, boolean>>
 local connections = {
@@ -93,14 +93,12 @@ local function CollapseCell(grid)
 		print("no cells found!", best_c)
 		return false
 	end
-	print(best_c)
 	local pos = best[math.random(1, #best)]
 	local cell = grid[pos.y][pos.x]
 	if #cell == 0 then
 		print("error! @ x: " .. pos.x .. " y: " .. pos.y)
 	end
 	local collapse_to = cell[math.random(1, #cell)]
-	print("collapsing to:", collapse_to)
 	if pos.x > 1 then
 		PropogateToCell(grid[pos.y][pos.x - 1], collapse_to)
 	end
@@ -119,7 +117,6 @@ end
 
 while true do
 	CollapseCell(world)
-	print("new world: ")
 	print(RenderGrid(world))
 	socket.sleep(0.1)
 end
