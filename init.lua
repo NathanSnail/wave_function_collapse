@@ -8,7 +8,7 @@
 ---@field y int
 
 local socket = require("socket")
-local WIDTH, HEIGHT = 30, 10
+local WIDTH, HEIGHT = 60, 30
 
 ---@type table<Cell, table<Cell, boolean>>
 local connections = {
@@ -16,6 +16,12 @@ local connections = {
 	LAND = { WATER = true, FOREST = true, LAND = true },
 	WATER = { LAND = true, WATER = true },
 }
+
+---@type table<Cell, number>
+local weights = { FOREST = 1.0, LAND = 2.5, WATER = 1.1 }
+
+---@type table<Cell, string>
+local colours = { LAND = "102", FOREST = "42", WATER = "44" }
 
 ---@type Grid
 local world = {}
@@ -48,10 +54,10 @@ local function RenderGrid(grid)
 			oy = y
 		end
 		if type(val) ~= "string" then
-			building = building .. " "
+			building = building .. "\27[0m "
 			return
 		end
-		building = building .. val:sub(1, 1)
+		building = building .. "\27[" .. colours[val] .. "m" .. val:sub(1, 1)
 	end)
 	return building
 end
@@ -72,6 +78,25 @@ local function PropogateToCell(cell, value)
 	end
 end
 
+---@param pool Cell[]
+---@return Cell
+local function RandomWeightedCell(pool)
+	local sums = {}
+	local sum = 0
+	for _, elem in ipairs(pool) do
+		sum = sum + weights[elem]
+		table.insert(sums, { weight = sum, value = elem })
+	end
+	local value = math.random() * sum
+	for _, elem in ipairs(sums) do
+		if value <= elem.weight then
+			return elem.value
+		end
+	end
+	print("error! weighted random failed")
+	return "LAND"
+end
+
 ---@param grid Grid
 ---@return bool collapsed
 local function CollapseCell(grid)
@@ -90,15 +115,16 @@ local function CollapseCell(grid)
 		end
 	end)
 	if #best == 0 then
-		print("no cells found!", best_c)
+		print("no cells found!")
 		return false
 	end
 	local pos = best[math.random(1, #best)]
 	local cell = grid[pos.y][pos.x]
+	---@cast cell Cell[]
 	if #cell == 0 then
 		print("error! @ x: " .. pos.x .. " y: " .. pos.y)
 	end
-	local collapse_to = cell[math.random(1, #cell)]
+	local collapse_to = RandomWeightedCell(cell)
 	if pos.x > 1 then
 		PropogateToCell(grid[pos.y][pos.x - 1], collapse_to)
 	end
